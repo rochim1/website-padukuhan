@@ -1,0 +1,1 @@
+<section class="page-hero"><div class="shell"><span class="eyebrow light">{{ $eyebrow }}</span><h1>{{ $title }}</h1><p>{{ $description }}</p><div class="breadcrumbs"><a href="{{ route('home') }}">Beranda</a><i class="ri-arrow-right-s-line"></i><span>{{ $title }}</span></div></div></section>

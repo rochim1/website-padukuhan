@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('title','Kontak')
+@section('content')
+@include('components.page-hero',['eyebrow'=>'Hubungi Kami','title'=>'Kontak Padukuhan','description'=>'Kanal resmi untuk pertanyaan, pelayanan, dan tawaran kolaborasi.'])
+<section class="section"><div class="shell contact-grid"><div><span class="eyebrow">Sekretariat</span><h2>Kami siap membantu.</h2><p>Silakan datang pada jam pelayanan atau hubungi kanal resmi berikut.</p><div class="contact-list"><div><i class="ri-map-pin-line"></i><span><small>Alamat</small><strong>{{ $address }}</strong></span></div><div><i class="ri-phone-line"></i><span><small>Telepon / WhatsApp</small><strong>{{ $phone }}</strong></span></div><div><i class="ri-mail-line"></i><span><small>Email</small><strong>{{ $email }}</strong></span></div><div><i class="ri-time-line"></i><span><small>Jam pelayanan</small><strong>Senin–Jumat, 08.00–15.00</strong></span></div></div></div><div class="map-placeholder"><i class="ri-map-2-line"></i><strong>Peta lokasi sekretariat</strong><span>Koordinat nantinya diambil dari Profil Publik Pantoo.</span><a class="button primary" href="https://maps.google.com/?q={{ urlencode($address) }}" target="_blank" rel="noopener">Buka Google Maps</a></div></div></section>
+@endsection

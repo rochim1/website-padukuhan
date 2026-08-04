@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('title','Transparansi')
+@section('content')
+@include('components.page-hero',['eyebrow'=>'Informasi Publik','title'=>'Transparansi Padukuhan','description'=>'Ringkasan program dan keuangan yang dipublikasikan untuk warga.'])
+<section class="section"><div class="shell"><div class="transparency-stats"><article><small>Pemasukan Tahun Berjalan</small><strong>Rp 84.750.000</strong><span class="positive"><i class="ri-arrow-up-line"></i> 68% dari rencana</span></article><article><small>Realisasi Pengeluaran</small><strong>Rp 61.320.000</strong><span>72% terserap</span></article><article><small>Program Berjalan</small><strong>8 program</strong><span class="positive">6 sesuai jadwal</span></article></div><div class="budget-card"><div class="section-head"><div><span class="eyebrow">Realisasi Program</span><h2>Penggunaan dana publik</h2></div><span class="tag">Data contoh 2026</span></div>@foreach([['Lingkungan',78],['Kesehatan & Sosial',64],['Pemuda & Olahraga',55],['Administrasi & Pelayanan',82]] as $budget)<div class="budget-row"><div><strong>{{ $budget[0] }}</strong><span>{{ $budget[1] }}%</span></div><div><i style="width:{{ $budget[1] }}%"></i></div></div>@endforeach</div></div></section>
+@endsection
