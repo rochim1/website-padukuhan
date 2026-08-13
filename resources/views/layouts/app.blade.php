@@ -2,7 +2,17 @@
 <html lang="id">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Portal informasi resmi {{ $name }}"><meta name="theme-color" content="#075f4c">
+  @php($metaTitle = trim($__env->yieldContent('title')) ?: ($seo['title'] ?? '') ?: (($website['site_name'] ?? '') ?: $name))
+  @php($metaDescription = ($seo['description'] ?? '') ?: (($website['description'] ?? '') ?: 'Portal informasi resmi '.$name))
+  <meta name="description" content="{{ $metaDescription }}"><meta name="theme-color" content="#075f4c">
+  <meta name="robots" content="{{ ($seo['robots_index'] ?? true) ? 'index' : 'noindex' }},{{ ($seo['robots_follow'] ?? true) ? 'follow' : 'nofollow' }}">
+  @if(!empty($seo['keywords']))<meta name="keywords" content="{{ $seo['keywords'] }}">@endif
+  @if(!empty($seo['canonical']))<link rel="canonical" href="{{ $seo['canonical'] }}">@endif
+  <meta property="og:title" content="{{ ($seo['og_title'] ?? '') ?: $metaTitle }}"><meta property="og:description" content="{{ ($seo['og_description'] ?? '') ?: $metaDescription }}">
+  @if(!empty($seo['og_image']))<meta property="og:image" content="{{ $seo['og_image'] }}">@endif
+  <meta name="twitter:card" content="{{ $seo['twitter_card'] ?? 'summary_large_image' }}"><meta name="twitter:title" content="{{ ($seo['twitter_title'] ?? '') ?: $metaTitle }}"><meta name="twitter:description" content="{{ ($seo['twitter_description'] ?? '') ?: $metaDescription }}">
+  @if(!empty($seo['twitter_image']))<meta name="twitter:image" content="{{ $seo['twitter_image'] }}">@endif
+  @if(!empty($website['favicon']))<link rel="icon" href="{{ $website['favicon'] }}">@endif
   <title>@yield('title', $name) · Portal Padukuhan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
@@ -22,6 +32,7 @@
       <a class="{{ request()->routeIs('home')?'active':'' }}" href="{{ route('home') }}">Beranda</a>
       <div class="nav-group"><a class="{{ request()->routeIs('profile','structure','facilities','gallery','contact')?'active':'' }}" href="{{ route('profile') }}">Profil <i class="ri-arrow-down-s-line"></i></a><div class="nav-submenu"><a href="{{ route('profile') }}"><i class="ri-book-open-line"></i>Profil & Visi Misi</a><a href="{{ route('structure') }}"><i class="ri-organization-chart"></i>Struktur Pengurus</a><a href="{{ route('facilities') }}"><i class="ri-building-2-line"></i>Fasilitas Umum</a><a href="{{ route('gallery') }}"><i class="ri-gallery-line"></i>Galeri Padukuhan</a><a href="{{ route('contact') }}"><i class="ri-contacts-line"></i>Kontak</a></div></div>
       <a class="{{ request()->routeIs('activities*')?'active':'' }}" href="{{ route('activities') }}">Kegiatan</a>
+      <a class="{{ request()->routeIs('agenda')?'active':'' }}" href="{{ route('agenda') }}">Agenda</a>
       <a class="{{ request()->routeIs('potential*')?'active':'' }}" href="{{ route('potential') }}">Potensi</a>
       <a class="{{ request()->routeIs('tourism*')?'active':'' }}" href="{{ route('tourism') }}">Wisata</a>
       <a class="{{ request()->routeIs('services*')?'active':'' }}" href="{{ route('services') }}">Layanan</a>

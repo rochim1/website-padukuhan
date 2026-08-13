@@ -4,7 +4,8 @@ return [
     'pantoo_village' => [
         'graphql_url' => env('PANTOO_GRAPHQL_URL', 'http://127.0.0.1:8080/graphql'),
         'media_url' => env('PANTOO_MEDIA_URL', 'http://127.0.0.1:8080'),
-        'organization_code' => env('PANTOO_ORGANIZATION_CODE', 'SUMBERARUM-DEMO'),
+        'organization_code' => env('PANTOO_ORGANIZATION_CODE'),
+        'allow_demo_fallback' => env('PANTOO_ALLOW_DEMO_FALLBACK', false),
     ],
 
     /*

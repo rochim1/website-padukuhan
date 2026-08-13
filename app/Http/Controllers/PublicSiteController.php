@@ -20,6 +20,11 @@ class PublicSiteController extends Controller
         $validated=$request->validate(['name'=>['nullable','string','max:120'],'contact'=>['nullable','string','max:80'],'category'=>['required','string'],'title'=>['required','string','max:160'],'description'=>['required','string','max:3000'],'location'=>['nullable','string','max:300']]);
         $categories=['Fasilitas Umum'=>'INFRASTRUCTURE','Lingkungan'=>'ENVIRONMENT','Keamanan'=>'SECURITY','Pelayanan'=>'PUBLIC_SERVICE','Usulan Kegiatan'=>'SOCIAL'];
         $receipt=$this->api->submitComplaint(['reporter_name'=>$validated['name']??'','reporter_contact'=>$validated['contact']??'','is_anonymous'=>empty($validated['name']),'category'=>$categories[$validated['category']]??'OTHER','title'=>$validated['title'],'description'=>$validated['description'],'location'=>$validated['location']??'']);
-        return redirect()->route('complaint')->with('success',"Aduan {$receipt['complaint_number']} berhasil diterima.");
+        return redirect()->route('complaint')->with('success',"Aduan {$receipt['complaint_number']} berhasil diterima.")->with('complaint_receipt',$receipt);
+    }
+    public function trackComplaint(Request $request) {
+        $validated=$request->validate(['complaint_number'=>['required','string','max:80'],'tracking_token'=>['required','string','max:120']]);
+        try { return redirect()->route('complaint')->withInput()->with('complaint_tracking',$this->api->trackComplaint($validated['complaint_number'],$validated['tracking_token'])); }
+        catch (\Throwable $error) { return redirect()->route('complaint')->withInput()->withErrors(['tracking'=>'Nomor pengaduan atau token pelacakan tidak ditemukan.']); }
     }
 }
