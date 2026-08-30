@@ -49,6 +49,22 @@ GQL;
         return $this->request($query, ['code' => $this->portal()['organization_code'], 'number' => $number, 'token' => $token])['TrackVillagePublicComplaint'];
     }
 
+    public function recordTourismVisit(string $slug): void
+    {
+        $query = <<<'GQL'
+mutation Visit($code:String!,$slug:String!){ RecordVillageTourismVisit(organization_code:$code,slug:$slug) }
+GQL;
+        try {
+            $this->request($query, ['code' => $this->portal()['organization_code'], 'slug' => $slug], [
+                'X-Forwarded-For' => request()->ip(),
+                'User-Agent' => substr((string) request()->userAgent(), 0, 500),
+                'Referer' => substr((string) request()->headers->get('referer'), 0, 1000),
+            ]);
+        } catch (\Throwable $error) {
+            report($error);
+        }
+    }
+
     private function fetchPortal(array $tenant): array
     {
         if ($tenant['mode'] === 'domain') {
@@ -56,7 +72,7 @@ GQL;
 query Portal($domain:String!){ GetVillagePublicPortalByDomain(domain:$domain){
  organization{ organization_code display_name }
  family_count resident_count active_resident_count finance_income_minor finance_expense_minor finance_surplus_minor active_arisan_count
- profile{ greeting{ official_name position photo title content term_start term_end is_published } history vision missions address village_name district_name regency_name province_name postal_code latitude longitude rt_count rw_count structure{ _id name position photo parent_id description phone email order } public_items{ _id category category_label name description image address contact tagline gallery opening_hours ticket_price facilities activities tourism_services latitude longitude booking_url booking_instructions seo_description order } publication{ population_statistics finance_transparency arisan_information } }
+ profile{ greeting{ official_name position photo title content term_start term_end is_published } history vision missions address village_name district_name regency_name province_name postal_code latitude longitude rt_count rw_count structure{ _id name position photo parent_id description phone email order } public_items{ _id category slug category_label name description image address contact tagline gallery opening_hours ticket_price facilities activities tourism_services latitude longitude booking_url website_url booking_instructions seo_description order } publication{ population_statistics finance_transparency arisan_information } }
  activities{ _id slug title excerpt content image published_at category }
  services{ _id code name description required_documents estimated_days }
  hero{ heading accent description background_image background_overlay background_position primary_label primary_url secondary_label secondary_url }
@@ -72,7 +88,7 @@ GQL;
 query Portal($code:String!){ GetVillagePublicPortal(organization_code:$code){
  organization{ organization_code display_name }
  family_count resident_count active_resident_count finance_income_minor finance_expense_minor finance_surplus_minor active_arisan_count
- profile{ greeting{ official_name position photo title content term_start term_end is_published } history vision missions address village_name district_name regency_name province_name postal_code latitude longitude rt_count rw_count structure{ _id name position photo parent_id description phone email order } public_items{ _id category category_label name description image address contact tagline gallery opening_hours ticket_price facilities activities tourism_services latitude longitude booking_url booking_instructions seo_description order } publication{ population_statistics finance_transparency arisan_information } }
+ profile{ greeting{ official_name position photo title content term_start term_end is_published } history vision missions address village_name district_name regency_name province_name postal_code latitude longitude rt_count rw_count structure{ _id name position photo parent_id description phone email order } public_items{ _id category slug category_label name description image address contact tagline gallery opening_hours ticket_price facilities activities tourism_services latitude longitude booking_url website_url booking_instructions seo_description order } publication{ population_statistics finance_transparency arisan_information } }
  activities{ _id slug title excerpt content image published_at category }
  services{ _id code name description required_documents estimated_days }
  hero{ heading accent description background_image background_overlay background_position primary_label primary_url secondary_label secondary_url }
@@ -85,9 +101,11 @@ GQL;
         return $this->normalize($portal);
     }
 
-    private function request(string $query, array $variables): array
+    private function request(string $query, array $variables, array $headers = []): array
     {
-        $response = Http::acceptJson()->timeout(8)->retry(2, 250)->post(config('services.pantoo_village.graphql_url'), compact('query', 'variables'));
+        $client = Http::acceptJson()->timeout(8)->retry(2, 250);
+        if ($headers !== []) $client = $client->withHeaders(array_filter($headers, fn ($value) => $value !== ''));
+        $response = $client->post(config('services.pantoo_village.graphql_url'), compact('query', 'variables'));
         if (!$response->successful()) throw new RuntimeException('Pantoo API tidak dapat dihubungi.');
         $json = $response->json();
         if (!empty($json['errors'])) throw new RuntimeException($json['errors'][0]['message'] ?? 'Pantoo API mengembalikan kesalahan.');
@@ -109,19 +127,31 @@ GQL;
         if (Str::startsWith($url, ['http://','https://'])) return $url;
         return rtrim(config('services.pantoo_village.media_url'), '/').'/'.ltrim($url, '/');
     }
+    private function whatsapp(?string $value): string
+    {
+        $number = preg_replace('/\D/', '', (string) $value);
+        if (str_starts_with($number, '0')) $number = '62'.substr($number, 1);
+        elseif ($number !== '' && !str_starts_with($number, '62')) $number = '62'.$number;
+        return $number;
+    }
     private function normalize(array $p): array
     {
         $base = config('padukuhan'); $profile = $p['profile']; $greeting = $profile['greeting'];
         $items = collect($profile['public_items']);
-        $potentials = $items->reject(fn($x)=>in_array($x['category'],['FACILITY','HEALTH','EDUCATION','RELIGION','TOURISM']))->map(fn($x)=>[
+        $potentials = $items->reject(fn($x)=>in_array($x['category'],['FACILITY','HEALTH','EDUCATION','RELIGION','TOURISM','SPONSORSHIP']))->map(fn($x)=>[
             'slug'=>Str::slug($x['name']),'title'=>$x['name'],'category'=>$x['category_label'] ?: ucfirst(strtolower($x['category'])),'icon'=>$this->categoryIcon($x['category']),'text'=>$x['description'],'owner'=>$x['name'],'contact'=>$x['contact'],'image'=>$this->media($x['image']),
         ])->values()->all();
         $tourism = $items->where('category','TOURISM')->map(fn($x)=>[
-            'slug'=>Str::slug($x['name']),'title'=>$x['name'],'tagline'=>($x['tagline'] ?? '') ?: ($x['category_label'] ?: 'Wisata Padukuhan'),'description'=>$x['description'],
+            'slug'=>($x['slug'] ?? '') ?: Str::slug($x['name']),'title'=>$x['name'],'tagline'=>($x['tagline'] ?? '') ?: ($x['category_label'] ?: 'Wisata Padukuhan'),'description'=>$x['description'],
             'image'=>$this->media($x['image']),'gallery'=>collect($x['gallery'] ?? [])->map(fn($url)=>$this->media($url))->filter()->values()->all(),
-            'address'=>$x['address'] ?: $profile['address'],'contact'=>$x['contact'],'opening_hours'=>$x['opening_hours'] ?? '','ticket_price'=>$x['ticket_price'] ?? '',
+            'address'=>$x['address'] ?: $profile['address'],'contact'=>$this->whatsapp($x['contact']),'opening_hours'=>$x['opening_hours'] ?? '','ticket_price'=>$x['ticket_price'] ?? '',
             'facilities'=>$x['facilities'] ?? [],'activities'=>$x['activities'] ?? [],'tourism_services'=>$x['tourism_services'] ?? [],'latitude'=>$x['latitude'] ?? $profile['latitude'],'longitude'=>$x['longitude'] ?? $profile['longitude'],
             'booking_url'=>$x['booking_url'] ?? '','booking_instructions'=>$x['booking_instructions'] ?? '','seo_description'=>($x['seo_description'] ?? '') ?: strip_tags($x['description']),
+        ])->values()->all();
+        $sponsors = $items->where('category','SPONSORSHIP')->map(fn($x)=>[
+            'slug'=>($x['slug'] ?? '') ?: Str::slug($x['name']),'title'=>$x['name'],'tagline'=>$x['tagline'] ?? 'Mitra Padukuhan','description'=>$x['description'],
+            'image'=>$this->media($x['image']),'gallery'=>collect($x['gallery'] ?? [])->map(fn($url)=>$this->media($url))->filter()->values()->all(),
+            'contact'=>$x['contact'] ?? '','website_url'=>$x['website_url'] ?? '','seo_description'=>($x['seo_description'] ?? '') ?: strip_tags($x['description']),
         ])->values()->all();
         $facilities = $items->filter(fn($x)=>in_array($x['category'],['FACILITY','HEALTH','EDUCATION','RELIGION']))->map(fn($x)=>['name'=>$x['name'],'type'=>ucfirst(strtolower($x['category'])),'icon'=>$this->categoryIcon($x['category']),'address'=>$x['address']])->values()->all();
         $activities = collect($p['activities'])->map(fn($x)=>[
@@ -143,7 +173,7 @@ GQL;
             'history'=>$profile['history'],'vision'=>$profile['vision'],'missions'=>$profile['missions'],'latitude'=>$profile['latitude'],'longitude'=>$profile['longitude'],'structure'=>$structure,
             'stats'=>[['value'=>number_format((int)$p['active_resident_count'],0,',','.'),'label'=>'Penduduk Aktif','icon'=>'ri-group-line'],['value'=>number_format((int)$p['family_count'],0,',','.'),'label'=>'Kepala Keluarga','icon'=>'ri-home-heart-line'],['value'=>(int)$profile['rt_count'].'/'.(int)$profile['rw_count'],'label'=>'Jumlah RT/RW','icon'=>'ri-community-line'],['value'=>number_format((int)$p['active_arisan_count'],0,',','.'),'label'=>'Arisan Aktif','icon'=>'ri-hand-coin-line']],
             'finance'=>['income'=>(float)$p['finance_income_minor'],'expense'=>(float)$p['finance_expense_minor'],'surplus'=>(float)$p['finance_surplus_minor']],
-            'activities'=>$activities,'agenda'=>$agenda,'gallery'=>$gallery,'potentials'=>$potentials,'tourism'=>$tourism,'services'=>$services,'officials'=>$structure,'facilities'=>$facilities,
+            'activities'=>$activities,'agenda'=>$agenda,'gallery'=>$gallery,'potentials'=>$potentials,'tourism'=>$tourism,'sponsors'=>$sponsors,'services'=>$services,'officials'=>$structure,'facilities'=>$facilities,
         ]);
     }
     private function categoryIcon(string $category): string { return ['MSME'=>'ri-store-2-line','AGRICULTURE'=>'ri-plant-line','TOURISM'=>'ri-route-line','FACILITY'=>'ri-government-line','HEALTH'=>'ri-heart-pulse-line','EDUCATION'=>'ri-book-open-line','RELIGION'=>'ri-moon-line'][$category] ?? 'ri-community-line'; }

@@ -11,6 +11,8 @@ Route::get('/kegiatan/{slug}', [PublicSiteController::class, 'activity'])->name(
 Route::get('/potensi/{slug}', [PublicSiteController::class, 'potential'])->name('potential.show');
 Route::get('/wisata', [PublicSiteController::class, 'tourism'])->name('tourism');
 Route::get('/wisata/{slug}', [PublicSiteController::class, 'tourismDetail'])->name('tourism.show');
+Route::get('/sponsor', [PublicSiteController::class, 'sponsorship'])->name('sponsorship');
+Route::get('/sponsor/{slug}', [PublicSiteController::class, 'sponsorshipDetail'])->name('sponsorship.show');
 Route::get('/layanan/{slug}', [PublicSiteController::class, 'service'])->name('services.show');
 Route::post('/pengaduan', [PublicSiteController::class, 'complaint'])->name('complaint.store');
 Route::post('/pengaduan/lacak', [PublicSiteController::class, 'trackComplaint'])->name('complaint.track');

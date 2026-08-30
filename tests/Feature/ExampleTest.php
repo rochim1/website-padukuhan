@@ -13,8 +13,8 @@ class ExampleTest extends TestCase
     {
         parent::setUp();
         config(['services.pantoo_village.allow_demo_fallback' => true]);
-        config(['services.pantoo_village.organization_code' => 'SUMBERARUM-DEMO']);
-        config(['padukuhan.organization_code' => 'SUMBERARUM-DEMO']);
+        config(['services.pantoo_village.organization_code' => 'PRUJAKAN-DEMO']);
+        config(['padukuhan.organization_code' => 'PRUJAKAN-DEMO']);
         Http::fake(function (Request $request) {
             if (str_contains((string) $request->body(), 'SubmitVillagePublicComplaint')) {
                 return Http::response(['data' => ['SubmitVillagePublicComplaint' => ['complaint_number' => 'PUB-TEST-001', 'tracking_token' => 'token-test-aman', 'status' => 'RECEIVED']]]);
@@ -25,9 +25,24 @@ class ExampleTest extends TestCase
 
     public function test_all_public_pages_return_successfully(): void
     {
-        foreach (['/', '/profil', '/kegiatan', '/agenda', '/potensi', '/layanan', '/pengaduan', '/struktur', '/fasilitas', '/galeri', '/transparansi', '/kontak', '/kegiatan/kerja-bakti-jalur-hijau', '/potensi/kerajinan-bambu', '/layanan/surat-pengantar'] as $path) {
+        foreach (['/', '/profil', '/kegiatan', '/agenda', '/potensi', '/wisata', '/sponsor', '/layanan', '/pengaduan', '/struktur', '/fasilitas', '/galeri', '/transparansi', '/kontak', '/kegiatan/kerja-bakti-jalur-hijau', '/potensi/kerajinan-bambu', '/wisata/jelajah-sungai', '/sponsor/koperasi-sejahtera', '/layanan/surat-pengantar'] as $path) {
             $this->get($path)->assertOk();
         }
+    }
+
+    public function test_sponsorship_appears_on_landing_and_has_detail_page(): void
+    {
+        $this->get('/')->assertOk()->assertSee('Koperasi Sejahtera');
+        $this->get('/sponsor/koperasi-sejahtera')->assertOk()->assertSee('Mitra Ekonomi Warga')->assertSee('https://example.com', false);
+    }
+
+    public function test_tourism_detail_uses_destination_seo_and_normalized_whatsapp(): void
+    {
+        $this->get('/wisata/jelajah-sungai')
+            ->assertOk()
+            ->assertSee('<meta name="description" content="Jelajahi alam dan kehidupan warga di Padukuhan Prujakan, Sinduharjo, Ngaglik.">', false)
+            ->assertSee('https://wa.me/6281233334455', false)
+            ->assertSee('TouristAttraction', false);
     }
 
     public function test_unknown_detail_slug_returns_not_found(): void
